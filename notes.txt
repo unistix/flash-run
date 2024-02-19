@@ -1,0 +1,217 @@
+Listen for a larger variance 
+Stable coins wont work because you can't get Polydoge had a 2% difference at one point
+
+
+
+
+FlashSwap ? A -> B?
+spreadWFee 0.000032389717367058976
+spread to low
+undefined
+continue searching
+pair: QuickSwap Wrapped Matic/USD Coin (PoS) | ratio0: NaN ratio1: 0.8462078399369117 time 2024-01-05T22:33:00.929Z 
+{ t0: 0.8411351843372402, t1: 0.8462078399369117 }        
+{ t0: 0.8411029557627456, t1: 0.8466596339306791 }        
+
+FlashSwap ? A -> B?
+spreadWFee 0.000032389717367058976
+spread to low
+undefined
+continue searching
+pair: QuickSwap Wrapped Matic/USD Coin (PoS) | ratio0: NaN ratio1: 0.8466563559384862 time 2024-01-05T22:35:45.081Z 
+{ t0: 0.8411351843372402, t1: 0.8466563559384862 }        
+{ t0: 0.8411029557627456, t1: 0.8466596339306791 }        
+
+FlashSwap ? A -> B?
+spreadWFee 0.000032389717367058976
+spread to low
+undefined
+continue searching
+pair: SushiSwap Wrapped Matic/USD Coin (PoS) | ratio0: 0.8301100196614012 ratio1: NaN time 2024-01-05T22:35:45.112Z 
+{ t0: 0.8411351843372402, t1: 0.8466563559384862 }        
+{ t0: 0.8301100196614012, t1: 0.8466596339306791 }        
+
+FlashSwap ? A -> B?
+
+FlashSwap  A -> B
+spreadWFee 0.011080290499218222
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+run flash
+Starting running flash loan contract
+pair: SushiSwap Wrapped Matic/USD Coin (PoS) | ratio0: NaN ratio1: 0.8301844611343911 time 2024-01-05T22:35:45.124Z 
+{ t0: 0.8411351843372402, t1: 0.8466563559384862 }        
+{ t0: 0.8301100196614012, t1: 0.8301844611343911 }        
+
+FlashSwap ? A -> B?
+
+FlashSwap  A -> B
+spreadWFee 0.011080290499218222
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+run flash
+Starting running flash loan contract
+pair: SushiSwap Wrapped Matic/USD Coin (PoS) | ratio0: NaN ratio1: 0.837106963970135 time 2024-01-05T22:35:45.130Z  
+{ t0: 0.8411351843372402, t1: 0.8466563559384862 }        
+{ t0: 0.8301100196614012, t1: 0.837106963970135 }
+
+FlashSwap ? A -> B?
+
+FlashSwap  A -> B
+spreadWFee 0.011080290499218222
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+run flash
+Starting running flash loan contract
+pair: SushiSwap Wrapped Matic/USD Coin (PoS) | ratio0: NaN ratio1: 0.8405403321878745 time 2024-01-05T22:35:45.136Z 
+{ t0: 0.8411351843372402, t1: 0.8466563559384862 }        
+{ t0: 0.8301100196614012, t1: 0.8405403321878745 }        
+
+FlashSwap ? A -> B?
+
+FlashSwap  A -> B
+spreadWFee 0.011080290499218222
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',   
+  token1: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',   
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',  
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'   
+}
+run flash
+Starting running flash loan contract
+flash loan contract address: 
+0xb873d1C35CF639552c36670c277389d665944867
+flash loan contract balance token0: 5.525355782926738345  
+flash loan contract balance token1: 0.0
+owner wallet address: 0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446
+owner wallet balance token0: 
+1.963586101898691455
+owner wallet contract balance token1: 5.370527
+Borrowing: 1  =  BigNumber { 
+_hex: '0x0de0b6b3a7640000', _isBigNumber: true }
+flash loan contract address: 
+0xb873d1C35CF639552c36670c277389d665944867
+flash loan contract balance token0: 5.525355782926738345  
+flash loan contract balance token1: 0.0
+owner wallet address: 0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446
+owner wallet balance token0: 
+1.963586101898691455
+owner wallet contract balance token1: 5.370527
+Borrowing: 1  =  BigNumber { 
+_hex: '0x0de0b6b3a7640000', _isBigNumber: true }
+flash loan contract address: 
+0xb873d1C35CF639552c36670c277389d665944867
+flash loan contract balance token0: 5.525355782926738345  
+flash loan contract balance token1: 0.0
+owner wallet address: 0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446
+owner wallet balance token0: 
+1.963586101898691455
+owner wallet contract balance token1: 5.370527
+Borrowing: 1  =  BigNumber { 
+_hex: '0x0de0b6b3a7640000', _isBigNumber: true }
+flash loan contract address: 
+0xb873d1C35CF639552c36670c277389d665944867
+flash loan contract balance token0: 5.525355782926738345  
+flash loan contract balance token1: 0.0
+owner wallet address: 0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446
+owner wallet balance token0: 
+1.963586101898691455
+owner wallet contract balance token1: 5.370527
+Borrowing: 1  =  BigNumber { 
+_hex: '0x0de0b6b3a7640000', _isBigNumber: true }
+5.525355782926738345
+params encoded
+5.525355782926738345
+params encoded
+5.525355782926738345
+params encoded
+5.525355782926738345
+params encoded
+gas price 30
+gas price 30
+gas price 30
+gas price 30
+0x4707411ef473bb1dff6f8d75490588a877abc9b30855be14e0667e485f3f1515f3f1515
+0x4707411ef473bb1dff6f8d75490588a877588a877abc9b30855be14e0667e48f      5f3f1515                      88a877
+0x4707411ef473bb1dff6f8d754905      588a877abc9b30855be14e0667e48f88a8775f3f1515                            
+0x4707411ef473bb1dff6f8d754905588a877abc9b30855be14e0667e48f5f3f1515
+1
+flash complete
+1
+flash complete
+1
+flash complete
+1
+flash complete
+PS D:\Code\8-trading-bots\mev2.0>
+
+
+FlashSwap ? B -> A?
+spreadWFee 0.0014759843365129432
+spread to low
+undefined
+continue searching
+
+pair: SushiSwap Wrapped Matic/(PoS) Tether USD | ratio0: 0.8 ratio1: NaN time 2024-01-07T11:33:25.179Z
+{ t0: 0.8, t1: 0.8352625102002734 }
+{ t0: 0.8315854, t1: 0.836733941554605 }
+
+FlashSwap ? B -> A?
+
+FlashSwap!!  B -> A
+spreadWFee 0.03174332699999999
+{
+  token0: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
+  token1: '0xc2132d05d31c914a87c6611c10748aeb04b58e8f',
+  router0: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',
+  router1: '0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506'
+}
+run flash
+Starting running flash loan contract
+flash loan contract address: 0xb873d1C35CF639552c36670c277389d665944867
+flash loan contract balance token0: 5.517578881968633984
+flash loan contract balance token1: 0.0
+Borrowing: 1  =  BigNumber { _hex: '0x0de0b6b3a7640000', _isBigNumber: true }
+5.517578881968633984
+params encoded
+gas price 32
+0x999e3f4f229b1ff836312f7831bf6735f42e85999fb06bbbae1508ad5479bca6
+1
+flash complete
+PS D:\Code\8-trading-bots\mev2.0> 

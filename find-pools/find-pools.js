@@ -95,6 +95,8 @@ const getPoolDataFromSubgraph = async (skipNo , subgraphUrl, excName) => {
       query = `
       {
         liquidityPools (
+          orderBy: cumulativeVolumeUSD
+          orderDirection: desc,
           first: 100
           skip: ${skipNo} 
           where: {inputTokens_: {id: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"}} 
@@ -106,6 +108,7 @@ const getPoolDataFromSubgraph = async (skipNo , subgraphUrl, excName) => {
               decimals
               symbol
             }
+            cumulativeVolumeUSD
         }
       }
       
@@ -165,16 +168,17 @@ exports.runFindPools = async () => {
     let allPoolNames
     
     //TODO:this should be a for loop through sugraphs list tbh 
+    let quickPools = await getAllPoolData(subgraphs.subgraphs[1].name,subgraphs.subgraphs[1].url)
     let sushiPools = await getAllPoolData(subgraphs.subgraphs[0].name,subgraphs.subgraphs[0].url)
     //sushiPools = await addExcName(sushiPools,"SushiSwap")
-    let apePools = await getAllPoolData(subgraphs.subgraphs[3].name,subgraphs.subgraphs[3].url)
-    let honeyPools = await getAllPoolData(subgraphs.subgraphs[2].name,subgraphs.subgraphs[2].url)
-    let quickPools = await getAllPoolData(subgraphs.subgraphs[1].name,subgraphs.subgraphs[1].url)
-    console.log(quickPools)
+    //let apePools = await getAllPoolData(subgraphs.subgraphs[3].name,subgraphs.subgraphs[3].url)
+    //let honeyPools = await getAllPoolData(subgraphs.subgraphs[2].name,subgraphs.subgraphs[2].url)
+    
+    
     //console.log(sushiPools[0])
     //console.log(apePools[0])
 
-    allPoolNames = [...sushiPools,...apePools,...honeyPools,...quickPools]
+    allPoolNames = [...sushiPools,...quickPools]//TODO:remember honey removed
 
     let matchingPools = findMatchingPools(allPoolNames)
 

@@ -1,6 +1,6 @@
 const ethers = require('ethers')
 require('dotenv').config()
-const pools = require('./data/pools.json')
+const pools = require('./data/quickpools.json')
 
 const INFURA_URL = process.env.INFURA_URL
 
@@ -11,7 +11,15 @@ const FlashLoanExampleABI = require('./artifacts/FlashLoanSwapTest.json')
 
 const owner = "0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446"
 const flashLoanContractAdress = "0xb873d1C35CF639552c36670c277389d665944867"
-const poolNumber = 41  //pool being tested from list of pools 51 DAI 31USDC 41USDT 1CRV 4PolyDoge
+const poolNumber = 710
+
+//WORK ON THIS ONE
+
+// ape pools - Dai, Link, USDT
+//quick pools //UST Quick-Sushi295 //USDT Ape-sushi 2 //DAI 3 //USDC 0 Quick Sushi //DAI Ape -Quick 704 *// PolyDoge - Ape Quick //705 Ape Quick USDT
+//Polydoge 710
+
+//You can get get the most up to date prices with 1/X then you can
 const BORROW = 1
 /**
  * UNUSED - Useful for V3 swaps but pointless now
@@ -61,6 +69,8 @@ let poolPricesA = {
 
 }
 
+
+
 let poolPricesB = {
     t0 : 0,
     t1 : 0,
@@ -68,64 +78,106 @@ let poolPricesB = {
 }
 
 
+let poolPriceA ={
+    t1:0
+}
 
+let poolPriceB ={
+    t1:0
+}
 
-async function swapResponse(pool, amounts, prices) {
+//sushi swap ratio 0 is USDT
+//quick swap ratio 1 is correct going to pairB t1
+//sushi swap ratio 0 
+//ratio 0 and ratio 1 are t1 values 
+
+/** We need to re-structure this to print by and sell depending on diretion */
+/**Instead of t0 and t1 objects both object should be t1 */
+
+async function swapResponse(pool, amounts, prices,tx) {
+    const slippage = 0.007; // 0.5% slippage
+    const fee = 0.007; // 0.3% fee
+    const spreadThreshold = slippage + fee;
+
     const currentDate = new Date();
     let r0 = ratio0ToPrice(amounts.amount0In, amounts.amount1Out)
     let r1 = ratio1ToPrice(amounts.amount1In, amounts.amount0Out)
     let result = false
     let params; 
+    //ratio0 price matches USDT ratio1 price matches MATIC
+    //ratio1 is buy getting USDT price, ratio2 is sell getting matic price
+    //review how arbitrage works are re-implement
     console.log(
-        'pair:', pool.name, '|',
+        '\npair:', pool.name, '|',
         'ratio0:', r0,
         'ratio1:', r1,
-        'time', currentDate
+        'time', currentDate,
+        'tx',tx
     )
     if(Number.isNaN(r0)){
         prices.t1 = r1
+       
     
     }else if(Number.isNaN(r1)){
-        prices.t0 = r0
+        prices.t1 = r0
+       
     }
 
-    if((poolPricesA.t0 !==0 && poolPricesB.t0!==0)){
-        console.log(poolPricesA)
-        console.log(poolPricesB)
+    //if((poolPricesA.t0 !==0 && poolPricesB.t0!==0)){
+    if((poolPriceA.t1 !==0 && poolPriceB.t1!==0)){//pool price and prices are different for reasons
+        console.log(poolPriceA)
+        console.log(poolPriceB)
         
-        if(poolPricesA.t0>poolPricesB.t0){
+        //if(poolPricesA.t0>poolPricesB.t0){
+        if(poolPriceA.t1<poolPriceB.t1){
             console.log("\nFlashSwap ? A -> B?");
-            spread = poolPricesA.t0 - poolPricesB.t0
-            let spreadWFee = spread + (spread*0.005) //should increase fee long term to include gas fees
-            
-            if(spreadWFee>0.01){
-                console.log("\nFlashSwap  A -> B");
-                console.log('spreadWFee',spreadWFee)
+            console.log("poolA",pool1.excName,"->","poolB",pool2.excName)
+            //spread = poolPricesA.t0 - poolPricesB.t0
+            /*spread = (poolPriceB.t1 - poolPriceA.t1)/poolPriceB.t1
+            let spreadWithFee = spread + (spread * spreadThreshold);*/
+
+            //add the fee on for each swap then check if the variance is huge
+            let spreadWithFee = ((poolPriceB.t1 + (poolPriceB.t1 * spreadThreshold)) - (poolPriceA.t1 + (poolPriceA.t1 * spreadThreshold)))/(poolPriceB.t1 + (poolPriceB.t1 * spreadThreshold))
+            if(spreadWithFee>0.05){ //TODO: back to spread with fee you're not accounting for transaction slippage 0.05 is cleaner but rarer 
+                //the current process should still continue but polling will stop
+                pairA.removeListener('Swap', swapEventHandlerA);
+                pairB.removeListener('Swap', swapEventHandlerB);
+                console.log("\nFlashSwap!!  A -> B");
+                console.log('spread',spreadWithFee)
+                
                 let params = {token0: pool1.inputTokens[0].id,token1: pool1.inputTokens[1].id,router0:pool1.factory,router1:pool2.factory} 
-                console.log(params)
+                //console.log(params)
                 return params
 
             }else{
-                console.log('spreadWFee',spreadWFee)
-                console.log("spread to low")
+                console.log('spread',spreadWithFee)
+                console.log("spread too low")
                 return params
             }
             
             
-        }else if (poolPricesB.t0>poolPricesA.t0){
+        //}else if (poolPricesB.t0>poolPricesA.t0){
+        }else if (poolPriceB.t1<poolPriceA.t1){
             console.log("\nFlashSwap ? B -> A?");
-            spread = poolPricesB.t0 - poolPricesA.t0
-            let spreadWFee = spread + (spread*0.005)//should increase fee long term to include gas fees
-            if(spreadWFee>0.01){ //isntead of 0 do 0.01
-                console.log("\nFlashSwap  B -> A");
-                console.log('spreadWFee',spreadWFee)
+            console.log("poolB",pool2.excName,"->","poolA",pool1.excName)
+            /*spread = (poolPriceA.t1 - poolPriceB.t1)/poolPriceA.t1
+            let spreadWithFee = spread + (spread * spreadThreshold);*/
+
+            let spreadWithFee = ((poolPriceA.t1 + (poolPriceA.t1 * spreadThreshold)) - (poolPriceB.t1 + (poolPriceB.t1 * spreadThreshold)))/(poolPriceA.t1 + (poolPriceA.t1 * spreadThreshold))
+            if(spreadWithFee>0.05){ //TODO: change back to with fee isntead of 0 do 0.01
+                //the current process should still continue but polling will stop
+                pairA.removeListener('Swap', swapEventHandlerA);
+                pairB.removeListener('Swap', swapEventHandlerB); 
+                console.log("\nFlashSwap!!  B -> A");
+                console.log('spread',spreadWithFee)
+                
                 let params = {token0: pool1.inputTokens[0].id,token1: pool1.inputTokens[1].id,router0:pool2.factory,router1:pool1.factory}
-                console.log(params)
+                //console.log(params)
                 return params
 
             }else{
-                console.log('spreadWFee',spreadWFee)
-                console.log("spread to low")
+                console.log('spread',spreadWithFee)
+                console.log("spread too low")
                 return params
             }
             
@@ -137,8 +189,8 @@ async function swapResponse(pool, amounts, prices) {
         
     }
     
-    console.log(poolPricesA)
-    console.log(poolPricesB)
+    console.log(poolPriceA)
+    console.log(poolPriceB)
     console.log("Zero Value - no swap")
     return params
 
@@ -171,7 +223,7 @@ async function calculateGas() {
     //TODO: document and explain to Emai
     let gasPrice = await provider.getGasPrice()
     let gasPriceGWEI = ethers.utils.formatUnits(gasPrice, "gwei")
-    let gasBuffered = Math.round(gasPriceGWEI + 10) //long term play around with this basd on other useful data?
+    let gasBuffered = Math.round(gasPriceGWEI + 20) //long term play around with this basd on other useful data?
     
     let gas = ethers.utils.parseUnits(gasBuffered.toString(), "gwei")
     console.log(`gas price ${gasBuffered.toString()}`)
@@ -188,10 +240,11 @@ async function runFlash(_params) {
     //const signer = await _provider.getSigner();
     const flashLoanContract = new ethers.Contract(flashLoanContractAdress, FlashLoanExampleABI.abi, provider)
 
+    //it splits into four from here why???
     const flashContractBalance0 = await tokenContract0.balanceOf(flashLoanContractAdress);
     const flashContractBalance1 = await tokenContract1.balanceOf(flashLoanContractAdress);
-    const ownerContractBalance0 = await tokenContract0.balanceOf(owner);
-    const ownerContractBalance1 = await tokenContract1.balanceOf(owner);
+    //const ownerContractBalance0 = await tokenContract0.balanceOf(owner);
+    //const ownerContractBalance1 = await tokenContract1.balanceOf(owner);
     //const tokenDecimals0 = tokenContract0.decimals() //these will be passed in with the address and symbol
     //const tokenDecimals1 = tokenContract1.decimals() //these will be passed in with the address and symbol
 
@@ -201,11 +254,11 @@ async function runFlash(_params) {
     console.log("flash loan contract address:",flashLoanContractAdress)
     console.log("flash loan contract balance token0:",ethers.utils.formatUnits(String(flashContractBalance0),tokenDecimals0))
     console.log("flash loan contract balance token1:",ethers.utils.formatUnits(String(flashContractBalance1),tokenDecimals1))
-
+    /*
     console.log("owner wallet address:",owner)
     console.log("owner wallet balance token0:",ethers.utils.formatUnits(String(ownerContractBalance0),tokenDecimals0) ) //make sure to get the decimals for the contract for easy reading
     console.log("owner wallet contract balance token1:", ethers.utils.formatUnits(String(ownerContractBalance1),tokenDecimals1))
-
+    */
     console.log("Borrowing:",BORROW," = ",convertToContractValue(BORROW, 18))
 
 
@@ -247,13 +300,13 @@ async function runFlash(_params) {
 
     //approve the swap
     const wallet = new ethers.Wallet(process.env.WALLET_SECRET)
-    const connectedWallet = wallet.connect(provider) //this could be the answer to any issues faced tbh
+    const connectedWallet = wallet.connect(provider)
     let gas = await calculateGas()
     const flashTx = await flashLoanContract.connect(connectedWallet).createFlashLoan(
         _params.token0, 
         convertToContractValue(BORROW, 18),
         params, 
-        {gasLimit: ethers.utils.hexlify(500000), //this is optimum gas for approval
+        {gasLimit: ethers.utils.hexlify(500000), //https://ethereum.stackexchange.com/questions/49340/how-to-estimate-gas-limit-when-using-web3-eth-sendsignedtransaction
             gasPrice: gas}) //use a buffer tracker tbh
     console.log(flashTx.hash)
     await flashTx.wait()
@@ -271,10 +324,10 @@ console.log("listening for swap")
 console.log(pool1.name,pool2.name)
 
 
-const swapEventHandlerA = async (sender, amount0In, amount1In, amount0Out, amount1Out, to) => {
+const swapEventHandlerA = async (sender, amount0In, amount1In, amount0Out, amount1Out, to, event) => {
     
     let amounts = {amount0In, amount1Out,amount1In, amount0Out}
-    let result = await swapResponse(pool1,amounts, poolPricesA) //this is where you run the whole function ()
+    let result = await swapResponse(pool1,amounts, poolPriceA,event.transactionHash) //this is where you run the whole function ()
     console.log(result) //params for flash swap
     if(result==undefined){
         console.log("continue searching")
@@ -282,8 +335,7 @@ const swapEventHandlerA = async (sender, amount0In, amount1In, amount0Out, amoun
     }else{
         
         console.log("run flash")
-        pairA.removeListener('Swap', swapEventHandlerA);
-        pairB.removeListener('Swap', swapEventHandlerB);
+        //moving the stop listener to ealier 
         runFlash(result)
     }
     /**
@@ -294,19 +346,18 @@ const swapEventHandlerA = async (sender, amount0In, amount1In, amount0Out, amoun
 
 const swapEventListenerA = pairA.on('Swap', swapEventHandlerA);
 
-const swapEventHandlerB = async (sender, amount0In, amount1In, amount0Out, amount1Out, to) => {
+const swapEventHandlerB = async (sender, amount0In, amount1In, amount0Out, amount1Out, to, event) => {
   
     let amounts = {amount0In, amount1Out,amount1In, amount0Out}
-    let result = await swapResponse(pool2,amounts,poolPricesB)
+    let result = await swapResponse(pool2,amounts,poolPriceB,event.transactionHash)
     console.log(result) //params for flash swap
     if(result==undefined){
        
         console.log("continue searching")
     }else{
         console.log("run flash")
+        //this needs to happen sooner
         
-        pairA.removeListener('Swap', swapEventHandlerA);
-        pairB.removeListener('Swap', swapEventHandlerB);
         runFlash(result)
     }
     /**
@@ -317,30 +368,4 @@ const swapEventHandlerB = async (sender, amount0In, amount1In, amount0Out, amoun
 
 const swapEventListenerB = pairB.on('Swap', swapEventHandlerB);
 
-
-//console.log(owner)
-//console.log(_params)
-let AVAX_PAIRS = {
-    poolIdA: "0xeb477ae74774b697b5d515ef8ca09e24fee413b5",
-    poolIdB: "0x3370c17c0411d2ce90a59162e3b3ec348c84768d",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x2c89bbc92bd86f8075d1decc58c7f4e0107f286b',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"UNI",
-  }
-  
-
-  let PAIRS = AVAX_PAIRS
-  _params ={
-    token0:PAIRS.token0, 
-    token1:PAIRS.token1,
-    router0:PAIRS.swapRouterAdressB,  //set this params depending on output 
-    router1:PAIRS.swapRouterAdressA
-
-}
-runFlash(_params)
+//0xb873d1C35CF639552c36670c277389d665944867

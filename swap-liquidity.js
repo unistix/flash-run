@@ -13,6 +13,16 @@ const owner = "0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446"
 const flashLoanContractAdress = "0xb873d1C35CF639552c36670c277389d665944867"
 const poolNumber = 41  //pool being tested from list of pools 51 DAI 31USDC 41USDT 1CRV 4PolyDoge
 const BORROW = 1
+
+
+//NEW STRATEGY
+
+/**
+ * 
+ * Don't need to check for prices, just check for large amount0In or amount1In, 
+ * large amount0In - Buy this mean price up here(Sell on this exchange)
+ * large amount1In - Sell - this mean price down here(Buy on this exchange)
+ */
 /**
  * UNUSED - Useful for V3 swaps but pointless now
  */
@@ -29,10 +39,7 @@ const provider = new ethers.providers.JsonRpcProvider(INFURA_URL)
 //const wallet = new ethers.Wallet(process.env.WALLET_SECRET, provider);
 //const signer = provider.getSigner(wallet.address)
 
-/**
- * I have lost the will to fight 
- */
-let oppFound = false
+
 
 //const v3Pool = new ethers.Contract(USDC_ETH_V3, v3PoolArtifact.abi, provider)
 //const v2Pair = new ethers.Contract(ETH_USDT_V2, v2PairArtifact.abi, provider)
@@ -316,31 +323,3 @@ const swapEventHandlerB = async (sender, amount0In, amount1In, amount0Out, amoun
 }
 
 const swapEventListenerB = pairB.on('Swap', swapEventHandlerB);
-
-
-//console.log(owner)
-//console.log(_params)
-let AVAX_PAIRS = {
-    poolIdA: "0xeb477ae74774b697b5d515ef8ca09e24fee413b5",
-    poolIdB: "0x3370c17c0411d2ce90a59162e3b3ec348c84768d",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x2c89bbc92bd86f8075d1decc58c7f4e0107f286b',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"UNI",
-  }
-  
-
-  let PAIRS = AVAX_PAIRS
-  _params ={
-    token0:PAIRS.token0, 
-    token1:PAIRS.token1,
-    router0:PAIRS.swapRouterAdressB,  //set this params depending on output 
-    router1:PAIRS.swapRouterAdressA
-
-}
-runFlash(_params)
