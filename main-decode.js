@@ -5,6 +5,7 @@ const axios = require('axios')
 const fs = require('fs').promises;
 
 const INFURA_URL = process.env.INFURA_URL
+const INFURA_WEBSOCKET = process.env.INFURA_WEBSOCKET
 const privateKey = process.env.WALLET_SECRET
 
 const v3PoolArtifact = require("@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json")
@@ -15,6 +16,137 @@ const FlashLoanExampleABI = require('./artifacts/FlashLoanSwapTest.json')
 
 const owner = "0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446"
 const flashLoanContractAdress = "0xb873d1C35CF639552c36670c277389d665944867"
+const contractInterface = new ethers.utils.Interface(v2RouterArtifact.abi); //interface object - decodes data in trasnaction 
+const provider = new ethers.providers.WebSocketProvider(INFURA_WEBSOCKET)
+
+
+txcount = 0
+stoplisten = false
+
+
+
+
+
+const main = async () => {
+  //listen to pending transaction
+  //pending returns only the hash and we need to get the actual tx data
+  console.log("listening for pending data")
+  
+    provider.on('pending', pendingListener);
+  
+  
+};
+
+const pendingListener = async (hash) => {
+  if(!stoplisten){
+    console.log(hash);
+    await getTransaction(hash);
+    
+    stoplisten=true
+    provider.removeListener('pending', pendingListener);
+    console.log('Stopped listening to pending events.');
+
+    await delay(20000)
+    txcount=0
+    stoplisten=false
+    provider.on('pending', pendingListener); //recursive???
+  }
+   
+}
+
+
+
+
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+const UNISWAP_ADDRESSES = [
+  '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff',
+  '0x1b02da8cb0d097eb8d57a175b88c7d8b47997506'
+   //Quickswap V2
+    //'0xE592427A0AEce92De3Edee1F18E0157C05861564', Uniswap V3
+]
+
+
+
+let txIdx = 0
+const getTransaction = async (transactionHash) => {
+  stoplisten=true
+  provider.removeListener('pending', pendingListener);
+  
+  //make 3 attempts to get the tx from the hash
+  for (let i = 0; i < 2; i++) {
+        const tx = await provider.getTransaction(transactionHash);
+        if (tx) { //if there is a transaction check the to value for a match on this list of contract addresses only contained in the swap router address
+          console.log(tx.to)
+            if (UNISWAP_ADDRESSES.includes(tx.to)) { //if the current pending TX is included
+                txIdx += 1
+                const data = tx.data //get the encoded string which contains all relevant swap data 
+                decodeTransaction(data, txIdx)
+                break
+            }
+        }
+        await delay(5000); //wait one second between each event
+    
+    }
+}
+
+const decodeTransaction = (txInput, txIdx, isMulticall = false) => {
+  console.log("decoding get tx...")
+
+  const decodedData = contractInterface.parseTransaction({ data: txInput });
+
+  const functionName = decodedData.name;
+
+  const args = decodedData.args;
+  const params = args.params;
+  const data = args.data;
+
+  //logFunctionName(functionName, txIdx, isMulticall);
+
+  if (functionName === 'swapExactTokensForTokens') { return logSwapExactTokensForTokens(params) }
+  // Add more functions as needed for V2
+
+  console.log('ADD THIS FUNCTION:', functionName);
+  console.log('decodedData:', decodedData);
+}
+
+
+// Add more log functions for different Uniswap V2 functions
+
+const logSwapExactTokensForTokens = (params) => {
+  console.log('amountIn:         ', params.amountIn);
+  console.log('amountOutMin:     ', params.amountOutMin);
+  console.log('path:             ', params.path);
+  console.log('to:               ', params.to);
+  console.log('deadline:         ', params.deadline);
+  console.log("date:            ", Date.now())
+
+  //return which exchange and other relevant data 
+}
+
+// Add more log functions for different Uniswap V2 functions
+
+// Rest of the code remains unchanged
+
+main();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   //pool being tested from list of pools 51 DAI 31USDC 41USDT 1CRV 4PolyDoge
 const BORROW = 50
 /**
@@ -29,7 +161,7 @@ sqrtToPrice = (sqrt) => {
     return ratio
 }
 
-const provider = new ethers.providers.JsonRpcProvider(INFURA_URL)
+
 //const wallet = new ethers.Wallet(process.env.WALLET_SECRET, provider);
 //const signer = provider.getSigner(wallet.address)
 
@@ -647,6 +779,6 @@ const _run = async () => {
 
 }
 
-_run()
+//_run()
 
 
