@@ -95,7 +95,7 @@ const getPoolDataFromSubgraph = async (skipNo , subgraphUrl, excName) => {
       query = `
       {
         liquidityPools (
-          orderBy: cumulativeVolumeUSD
+          orderBy: totalValueLockedUSD
           orderDirection: desc,
           first: 100
           skip: ${skipNo} 
@@ -108,7 +108,7 @@ const getPoolDataFromSubgraph = async (skipNo , subgraphUrl, excName) => {
               decimals
               symbol
             }
-            cumulativeVolumeUSD
+            totalValueLockedUSD
         }
       }
       

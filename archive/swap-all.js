@@ -1,21 +1,19 @@
 const ethers = require('ethers')
 require('dotenv').config()
-const pools = require('./data/quickpools.json')
+const pools = require('../data/quickpools.json')
 
 const INFURA_URL = process.env.INFURA_URL
 
 const v3PoolArtifact = require("@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json")
 const v2PairArtifact = require('@uniswap/v2-periphery/build/IUniswapV2Pair.json')
-const WMATICABI = require('./artifacts/WMATICABI.json')
-const FlashLoanExampleABI = require('./artifacts/FlashLoanSwapTest.json')
+const WMATICABI = require('../artifacts/WMATICABI.json')
+const FlashLoanExampleABI = require('../artifacts/FlashLoanSwapTest.json')
 
 const owner = "0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446"
 const flashLoanContractAdress = "0xb873d1C35CF639552c36670c277389d665944867"
 const poolNumber = 295  
 // ape pools - Dai, Link, USDT
 //quick pools //UST Quick-Sushi295 //USDT Ape-sushi 2 //DAI 3 //USDC 0 Quick Sushi //DAI Ape -Quick 704 *// PolyDoge - Ape Quick //705 Ape Quick USDT
-
-//You can get get the most up to date prices with 1/X then you can
 const BORROW = 1
 /**
  * UNUSED - Useful for V3 swaps but pointless now
@@ -71,13 +69,8 @@ let poolPricesB = {
 
 }
 
-//sushi swap ratio 0 is USDT
-//quick swap ratio 1 is correct going to pairB t1
-//sushi swap ratio 0 
-//ratio 0 and ratio 1 are t1 values 
 
-/** We need to re-structure this to print by and sell depending on diretion */
-/**Instead of t0 and t1 objects both object should be t1 */
+
 
 async function swapResponse(pool, amounts, prices,tx) {
     const currentDate = new Date();
@@ -97,11 +90,9 @@ async function swapResponse(pool, amounts, prices,tx) {
     )
     if(Number.isNaN(r0)){
         prices.t1 = r1
-       
     
     }else if(Number.isNaN(r1)){
         prices.t0 = r0
-       
     }
 
     //if((poolPricesA.t0 !==0 && poolPricesB.t0!==0)){
@@ -116,7 +107,7 @@ async function swapResponse(pool, amounts, prices,tx) {
             spread = poolPricesB.t1 - poolPricesA.t1
             let spreadWFee = spread + (spread*0.005) //should increase fee long term to include gas fees 
             
-            if(spread>0.02){ //TODO: back to spread with fee you're not accounting for transaction slippage 0.05 is cleaner but rarer 
+            if(spread>0.01){ //TODO: back to spread with fee you're not accounting for transaction slippage 0.05 is cleaner but rarer 
                 //the current process should still continue but polling will stop
                 pairA.removeListener('Swap', swapEventHandlerA);
                 pairB.removeListener('Swap', swapEventHandlerB);
@@ -138,7 +129,7 @@ async function swapResponse(pool, amounts, prices,tx) {
             console.log("\nFlashSwap ? B -> A?");
             spread = poolPricesA.t1 - poolPricesB.t1
             let spreadWFee = spread + (spread*0.005)//should increase fee long term to include gas fees
-            if(spread>0.02){ //TODO: change back to with fee isntead of 0 do 0.01
+            if(spread>0.01){ //TODO: change back to with fee isntead of 0 do 0.01
                 //the current process should still continue but polling will stop
                 pairA.removeListener('Swap', swapEventHandlerA);
                 pairB.removeListener('Swap', swapEventHandlerB); 

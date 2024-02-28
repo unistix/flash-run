@@ -1,9 +1,9 @@
 const {ethers} = require("ethers") //don't need hardhat to call the existing contracts
 const v2PairArtifact = require('@uniswap/v2-periphery/build/IUniswapV2Pair.json')
 //const { POOL_ADDRESS_PROVIDER } = require("../config");
-const pools = require('./data/pools.json')
-const WMATICABI = require('./artifacts/WMATICABI.json')
-const FlashLoanExampleABI = require('./artifacts/FlashLoanExample.json')
+const pools = require('../data/pools.json')
+const WMATICABI = require('../artifacts/WMATICABI.json')
+const FlashLoanExampleABI = require('../artifacts/FlashLoanExample.json')
 
 const INFURA_URL = process.env.INFURA_URL
 

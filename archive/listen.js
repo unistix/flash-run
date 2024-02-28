@@ -1,6 +1,6 @@
 const ethers = require('ethers')
 require('dotenv').config()
-const pools = require('./data/pools.json')
+const pools = require('../data/pools.json')
 
 const INFURA_URL = process.env.INFURA_URL
 
