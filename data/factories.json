@@ -1,5 +1,5 @@
 {"factories":[
-{"excName":"SushiSwap","routerId":"0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"},
-{"excName":"QuickSwap","routerId":"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"},
-{"excName":"Honeyswap","routerId":"0xaD340d0CD0B117B0140671E7cB39770e7675C848"},
-{"excName":"ApeSwap","routerId":"0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607"}]}
+{"exchangeName":"sushiswap","id":"0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506"},
+{"exchangeName":"quickswap","id":"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff"},
+{"exchangeName":"honeyswap","id":"0xaD340d0CD0B117B0140671E7cB39770e7675C848"},
+{"exchangeName":"apeswap","id":"0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607"}]}

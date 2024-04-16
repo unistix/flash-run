@@ -1,0 +1,58 @@
+{
+  "pool": {
+    "id": "0x014ac2a53aa6fba4dcd93fde6d3c787b79a1a6e6",
+    "name": "SushiSwap Wrapped Matic/PlanetIX",
+    "inputTokens": [
+      {
+        "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+        "decimals": 18,
+        "symbol": "WMATIC"
+      },
+      {
+        "id": "0xe06bd4f5aac8d0aa337d13ec88db6defc6eaeefe",
+        "decimals": 18,
+        "symbol": "IXT"
+      }
+    ],
+    "totalValueLockedUSD": "157245.1487850269250697469721843592",
+    "exchangeName": "sushiswap",
+    "factory": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
+    "poolReserves": {
+      "lq0": "95220.875612031031172356",
+      "lq1": "702024.206329470687621568"
+    },
+    "arbSwapResult": {
+      "amountOut": "9.693017379673855979",
+      "swapSucceed": false,
+      "failReason": "negative trade - no gas spend",
+      "profit": -0.3069826203261439
+    }
+  },
+  "matches": [
+    {
+      "id": "0x8fcb93c0d9fa361c57c1d31bbf1c4d8c61af7d3d",
+      "name": "QuickSwap Wrapped Matic/PlanetIX",
+      "inputTokens": [
+        {
+          "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+          "decimals": 18,
+          "symbol": "WMATIC"
+        },
+        {
+          "id": "0xe06bd4f5aac8d0aa337d13ec88db6defc6eaeefe",
+          "decimals": 18,
+          "symbol": "IXT"
+        }
+      ],
+      "totalValueLockedUSD": "2272.065267643986918796367857769415",
+      "exchangeName": "quickswap",
+      "factory": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+      "poolReserves": {
+        "lq0": "1362.095765435268319509",
+        "lq1": "10223.787549173089991666",
+        "lqDiff0": 194.35885748384396,
+        "lqDiff1": 194.25829899864058
+      }
+    }
+  ]
+}

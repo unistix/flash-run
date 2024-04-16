@@ -1,652 +1,451 @@
-const ethers = require('ethers')
-require('dotenv').config()
-const pools = require('./data/pools.json')
-const axios = require('axios')
-const fs = require('fs').promises;
+const axios = require("axios");
+const ethers = require("ethers");
+const {runFindPools} = require("./helper/find-pools.js")
+const playSound = require("play-sound")();
+const { buyNewToken, sellNewToken, getCurrentPrice,getCurrentPriceTest,arbitrageTest,arbitrageSwap,setSwapRouterAddress } = require("./helper/swap.js");
+const {readPoolsFromSubgraphtoFile,savePoolstoFileTest} = require ("./helper/fileIO.js")
+const {runFlash} = require("./main-flash.js")
+require("dotenv").config();
 
-const INFURA_URL = process.env.INFURA_URL
-const privateKey = process.env.WALLET_SECRET
+const INFURA_URL = process.env.INFURA_URL;
+const privateKey = process.env.WALLET_SECRET;
+const owner = process.env.WALLET_ADDRESS;
 
-const v3PoolArtifact = require("@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json")
-const v2PairArtifact = require('@uniswap/v2-periphery/build/IUniswapV2Pair.json')
-const v2RouterArtifact = require('./artifacts/V2ROUTER.json')
-const WMATICABI = require('./artifacts/WMATICABI.json')
-const FlashLoanExampleABI = require('./artifacts/FlashLoanSwapTest.json')
+//const v3PoolArtifact = require("@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json")
+const v2FactoryArtifact = require("./V2ABI.json");
+const v2RouterArtifact = require("./V2ROUTER.json");
+const v2PairArtifact = require("@uniswap/v2-periphery/build/IUniswapV2Pair.json");
+const WMATICABI = require("./WMATICABI.json");
 
-const owner = "0x0040DEf8786BE2f596E9b74d50Ae3eC4A3bFa446"
-const flashLoanContractAdress = "0xb873d1C35CF639552c36670c277389d665944867"
-  //pool being tested from list of pools 51 DAI 31USDC 41USDT 1CRV 4PolyDoge
-const BORROW = 50
-/**
- * UNUSED - Useful for V3 swaps but pointless now
- */
-sqrtToPrice = (sqrt) => {
-    const numerator = sqrt ** 2
-    const denominator = 2 ** 192
-    let ratio = numerator / denominator
-    const decimalShift = Math.pow(10, -12) //token 0 -token 1 decimals
-    ratio = ratio * decimalShift
-    return ratio
+const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+
+const soundFilePathBuy = "./sounds/buy.mp3";
+const soundFilePathSell = "./sounds/sell.mp3";
+
+const BUY_AMOUNT = 150
+const gasFee = 0.02 //We will switch this back to 5 long term
+let complete = false
+
+//TODO: Review TOKEN directions for liquidity
+
+
+function calculatePercentageDiff(x, y) {
+  // Calculate absolute difference
+  x = Number(x)
+  y = Number(y)
+  const absoluteDifference = Math.abs(x - y);
+  const average = (x + y) / 2;
+  const percentageDifference = (absoluteDifference / average) * 100;
+  
+  return percentageDifference;
 }
 
-const provider = new ethers.providers.JsonRpcProvider(INFURA_URL)
-//const wallet = new ethers.Wallet(process.env.WALLET_SECRET, provider);
-//const signer = provider.getSigner(wallet.address)
-
-//console.log(owner)
-//console.log(_params)
-let AVAX_PAIRS = {
-    poolIdA: "0xeb477ae74774b697b5d515ef8ca09e24fee413b5",
-    poolIdB: "0x3370c17c0411d2ce90a59162e3b3ec348c84768d",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x2c89bbc92bd86f8075d1decc58c7f4e0107f286b',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"AVAX",
-  }
-
-  let RAIN_PAIRS = {
-    poolIdA: "0xea0fb60e2d6610210554e698e6e184857eefdf94",
-    poolIdB: "0xb152a8c94e0e22d23fea613bc2132c1cbeb5a51d",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x8e677ca17065ed74675bc27bcabadb7eef10a292',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"RAIN",
-  }
-  let IXT_PAIRS = {
-    poolIdA: "0x8fcb93c0d9fa361c57c1d31bbf1c4d8c61af7d3d",
-    poolIdB: "0x014ac2a53aa6fba4dcd93fde6d3c787b79a1a6e6",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0xe06bd4f5aac8d0aa337d13ec88db6defc6eaeefe',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"IXT",
-  }
-
-  let CCG_PAIRS = {
-    poolIdA: "0x5fb641de2663e8a94c9dea0a539817850d996e99",
-    poolIdB: "0xc284a7549048245a941f425a4fe9746b174b0770",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x6f8a06447ff6fcf75d803135a7de15ce88c1d4ec',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"SHIB",
-  }
-
-  let FRX_PAIRS = {
-    poolIdA: "0x495c64aeebd1c8e7c5eae1894ba901ff734f2d82",
-    poolIdB: "0x076683b2e5f18faed7e6362434db822d56e75f45",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x3e121107f6f22da4911079845a470757af4e1a1b',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"FRX",
-  }
-
-  let LINK_PAIRS = {
-    poolIdA: "0x3c986748414a812e455dcd5418246b8fded5c369",
-    poolIdB: "0x68cce7049013ca8df91cd512cefee8fc0bb8d926",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"LINK",
-  }
-
-  let FISH_PAIRS = {
-    poolIdA: "0x289cf2b63c5edeeeab89663639674d9233e8668e",
-    poolIdB: "0xcbf6f78981e63ef813cb71852d72a060b583eecf",
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0xa1c57f48f0deb89f569dfbe6e2b7f46d33606fd4',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"FISH",
-  }
-
-  let BAL_PAIRS = {
-    poolIdA: "0xa3f2ce9f86f2e7e18df141b6544fc906ad43f434",
-    poolIdB: "0x81e3dd9a4d58ec92ad575342967636ae1a24cf2b", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3',
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"BAL",
-
-  }
-
-  let OCEAN_PAIRS = {
-    poolIdA: "0xf40414bcefbff7e98d6d1fe6989f46f89617c7f0",
-    poolIdB: "0x5a94f81d25c73eddbdd84b84e8f6d36c58270510", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x282d8efce846a88b159800bd4130ad77443fa1a1', //0x3efcd659b7a45d14dda8a102836ce4b765c42324
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"OCEAN",
-
-  }
-
-  let TEL_PAIRS = {
-    poolIdA: "0x9b5c71936670e9f1f36e63f03384de7e06e60d2a",
-    poolIdB: "0x87acd3d73bc4d56e5a4fb36071de929a4571cda0", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0xdf7837de1f2fa4631d716cf2502f8b230f1dcc32', //
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"TEL",
-
-  }
-
-  let CIPHER_PAIRS = {
-    poolIdA: "0x2c359f25b6f9a68eede31cf7da68a7bffd7b1c13",
-    poolIdB: "0x85f5e5e0e93d1fcebb72aa5a5e449aa8cb9a1083", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0xaa404804ba583c025fa64c9a276a6127ceb355c6', //
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"CIPHER",
-
-  }
-
-  let CTF_PAIRS = {
-    poolIdA: "0x7926ff860c1593e2473f6e28062e5a46230a813c",
-    poolIdB: "0x5ff4e0ab9eaf1c4b9df31bd08a1b83536294721d", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x7b3bd12675c6b9d6993eb81283cb68e6eb9260b5', //
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"CTF",
-
-  }
-
-  let SPORK_PAIRS = {
-    poolIdA: "0x8c46464c317ff575a2e004da005e016c54fa47e8",
-    poolIdB: "0xd86cfec4ddaaceb6b7114b7d65278d407e5e03aa", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0x9ca6a77c8b38159fd2da9bd25bc3e259c33f5e39', //
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"SPORK",
-
-  }
-
-  let TRY_PAIRS = {
-    poolIdA: "0x74276857987726c3e4b523e1339e5a2093e9ad28",
-    poolIdB: "0xdc2d6f129a5fb13aac61a63ef25e8f7691fd2020", //0x256321a55cdfd22c19952d13661512d89b21ca51
-    token0:'0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270',
-    token1:'0xefee2de82343be622dcb4e545f75a3b9f50c272d', //
-    tokenDecimals0:18,
-    tokenDecimals1:18,
-    exchangeNameA:"quickswap",
-    exchangeNameB:"sushiswap",
-    swapRouterAdressA:"0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
-    swapRouterAdressB:"0x1b02da8cb0d097eb8d57a175b88c7d8b47997506",
-    tokenName:"TRY",
-
-  }
+async function checkLiquidity(poolObject) {
+  console.log("*Checking initial liquidity ...")
 
 
+
+  const poolContract = new ethers.Contract(poolObject.pool.id, v2PairArtifact.abi, provider);
   
 
-  let PAIRS = TRY_PAIRS//CTF_PAIRS 
-  /*_params ={
-    token0:PAIRS.token0, 
-    token1:PAIRS.token1,
-    router0:PAIRS.swapRouterAdressB,  //set this params depending on output 
-    router1:PAIRS.swapRouterAdressA
+  //get liquidity for pool and update pool- object
+  let poolReservesRaw = await poolContract.getReserves()
+  let poolLq0 = ethers.utils.formatUnits(String(poolReservesRaw[0]),poolObject.pool.inputTokens[0].decimals)
+  let poolLq1 = ethers.utils.formatUnits(String(poolReservesRaw[1]),poolObject.pool.inputTokens[1].decimals)
+  if(Number(poolLq0)<20 ||Number(poolLq1)<20){ //TODO:REVIEW THIS IT COULD CAUSE ISSUES WITH FLASH LOANS
+    
+    return false
 
-}
-
-
-
-runFlash(_params)*/
-
-
-let BUY_AMOUNT = BORROW
-let aaveFee = BUY_AMOUNT *0.001
-let tradeFee = 2 * (BUY_AMOUNT*0.003)
-let slippage = 2 *(BUY_AMOUNT* 0.005)
-let gasFee = 0.04
-let txFees = 0.001 + 0.003 + 0.01 //aave, trade,slippage
-let feeThreshold = BUY_AMOUNT + aaveFee + tradeFee + slippage
-let _threshold = aaveFee + tradeFee + slippage +gasFee
-
-let stopInterval = false
-let getPricesInterval = null
-
-
-//!!!FLASH STUFF DONT TOUCH 
-function convertToContractValue(value, decimals) {
-    /**
-     * Converts a value to the equivalent value in the smart contract's base unit. 
-     */
+  }
+  let poolReserves = {
+    lq0:  poolLq0,
+    lq1:  poolLq1,
+    //timestamp??
+  }
   
+  poolObject.pool.poolReserves = poolReserves
   
-    // Check if the value is a string or number
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      throw new Error('Invalid input: value must be a string or number');
+
+  
+  //get liquidity for matches and update match -object
+
+  for (const match of poolObject.matches) {
+    const matchContract = new ethers.Contract(match.id, v2PairArtifact.abi, provider);
+    let matchReservesRaw = await matchContract.getReserves()
+    let lq0 =  ethers.utils.formatUnits(String(matchReservesRaw[0]),match.inputTokens[0].decimals)
+    let lq1 =  ethers.utils.formatUnits(String(matchReservesRaw[1]),match.inputTokens[1].decimals)
+    if(Number(lq0)<20 ||Number(lq1)<20){//TODO:REVIEW THIS IT COULD CAUSE ISSUES WITH FLASH LOANS
+      //poolObjects.pop(poolObject)
+      console.log("not enough liquidity")
+     
+      return false
+  
     }
-  
-    // Check if decimals is a positive integer
-    if (!Number.isInteger(decimals) || decimals < 0) {
-      throw new Error('Invalid input: decimals must be a non-negative integer');
+    let matchReserves = {
+      lq0:  lq0,
+      lq1:  lq1,
+      lqDiff0:calculatePercentageDiff(poolLq0,lq0) ,
+      lqDiff1:calculatePercentageDiff(poolLq1,lq1) ,
+      //timestamp??
     }
-  
-    // Convert the value to a BigNumber
-    //const valueInBigNumber = ethers.toBigInt(value);
-    // Convert the value to the base unit used by the smart contract
-    const contractValue = ethers.utils.parseUnits(value.toString(), decimals);
-    return contractValue;
-}
-
-async function calculateGas() {
-    //TODO: document and explain to Emai
-    let gasPrice = await provider.getGasPrice()
-    let gasPriceGWEI = ethers.utils.formatUnits(gasPrice, "gwei")
-    let gasBuffered = Math.round(gasPriceGWEI + 10) //long term play around with this basd on other useful data?
-    
-    let gas = ethers.utils.parseUnits(gasBuffered.toString(), "gwei")
-    console.log(`gas price ${gasBuffered.toString()}`)
-    return gas
-}
-
-
-async function runFlash(_params) {
-    console.log("Starting running flash loan contract ")
-   
-    const tokenContract0 = new ethers.Contract(_params.token0, WMATICABI.abi, provider)
-    const tokenContract1 = new ethers.Contract(_params.token1, WMATICABI.abi, provider)
-    //const _provider = new ethers.BrowserProvider(window.ethereum);
-    //const signer = await _provider.getSigner();
-    const flashLoanContract = new ethers.Contract(flashLoanContractAdress, FlashLoanExampleABI.abi, provider)
-
-    const flashContractBalance0 = await tokenContract0.balanceOf(flashLoanContractAdress);
-    const flashContractBalance1 = await tokenContract1.balanceOf(flashLoanContractAdress);
-    const ownerContractBalance0 = await tokenContract0.balanceOf(owner);
-    const ownerContractBalance1 = await tokenContract1.balanceOf(owner);
-    //const tokenDecimals0 = tokenContract0.decimals() //these will be passed in with the address and symbol
-    //const tokenDecimals1 = tokenContract1.decimals() //these will be passed in with the address and symbol
-
+    match.poolReserves =  matchReserves
+    //console.log(matchReserves)
     
 
-    //original balance
-    console.log("flash loan contract address:",flashLoanContractAdress)
-    console.log("flash loan contract balance token0:",ethers.utils.formatUnits(String(flashContractBalance0),PAIRS.tokenDecimals0))
-    console.log("flash loan contract balance token1:",ethers.utils.formatUnits(String(flashContractBalance1),PAIRS.tokenDecimals1))
-
-    console.log("owner wallet address:",owner)
-    console.log("owner wallet balance token0:",ethers.utils.formatUnits(String(ownerContractBalance0),PAIRS.tokenDecimals0) ) //make sure to get the decimals for the contract for easy reading
-    console.log("owner wallet contract balance token1:", ethers.utils.formatUnits(String(ownerContractBalance1),PAIRS.tokenDecimals1))
-
-    console.log("Borrowing:",BORROW," = ",convertToContractValue(BORROW, 18))
-
-
-    
-    try{
-    
-  
-        const txn = await flashLoanContract.getERC20Balance(_params.token0); 
-        console.log(ethers.utils.formatUnits(String(txn),PAIRS.tokenDecimals0))
-       
-        
-    }catch(err){
-          console.log(err)
-          //make arbitrage and create flash loan might be the main issue here.
-    }
-
-    //let abiCoder = ethers.AbiCoder.defaultAbiCoder() v6
-    
-    //let abiCoder = ethers.utils.defaultAbiCoder
-    const params = ethers.utils.defaultAbiCoder.encode(["address","address","address","address"],[_params.token0,_params.token1,_params.router0,_params.router1])
-    console.log("params encoded")
-    /*try{
-        const txn = await flashLoanContract.createFlashLoan(_params.token0, convertToContractValue(BORROW, 18),params); //FIXME:change to decimals
-        console.log(txn)
-        await txn.wait();
-    
-        console.log("transaction complete")
-        console.log(txn.hash)
-        const balance = await flashLoanContract.getERC20Balance("0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270");
-        console.log(hre.ethers.formatUnits(String(balance),tokenDecimals0))
-        
-        }catch(err){
-          console.log(err)
-         
-          //FIXME:ProviderError: execution reverted: UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT
-          //https://ethereum.stackexchange.com/questions/84668/swap-tokens-back-to-ether-on-uniswap-v2-router-02-sell-tokens
-        
-        }*/
-
-    //approve the swap
-    const wallet = new ethers.Wallet(process.env.WALLET_SECRET)
-    const connectedWallet = wallet.connect(provider) //this could be the answer to any issues faced tbh
-    let gas = await calculateGas()
-    const flashTx = await flashLoanContract.connect(connectedWallet).createFlashLoan(
-        _params.token0, 
-        convertToContractValue(BORROW, 18),
-        params, 
-        {gasLimit: ethers.utils.hexlify(500000), //this is optimum gas for approval
-            gasPrice: gas}) //use a buffer tracker tbh
-    console.log(flashTx.hash)
-    await flashTx.wait()
-    const flashReceipt = await provider.waitForTransaction(flashTx.hash).then(
-        flashReceipt => {  
-          console.log(flashReceipt.status)
-          console.log("flash complete")
-        })
-
-
-}
-
-
-const getCurrentPrice= async (poolAddress) => {
-    //const poolAddress = POOL_DATA.id;
-    const apiUrl = `https://api.geckoterminal.com/api/v2/networks/polygon_pos/pools/${poolAddress}/ohlcv/minute?limit=1`;
-    let currentPrice
-    try {
-        const response = await axios.get(apiUrl);
-        const data = response.data;
-       
-        //console.log(data.data.attributes.ohlcv_list[0])
-        if(data.data.attributes.ohlcv_list.length ===0){ ///TODO:check length isn't 0
-          currentPrice=null
-          
-        }else{
-          currentPrice = data.data.attributes.ohlcv_list[0][4]
-          
-        }
-       
-        //return currentPrice;
-    } catch (error) {
-        console.error('Error fetching data:', error.message);
-        throw error;
-    }
-    return currentPrice;
-    
-}
-
-const getPrices = async () => {
-    if(!stopInterval){
-        //for testing
-    let poolAddressA = PAIRS.poolIdA
-    let poolAddressB = PAIRS.poolIdB
-
-    let priceA = await getCurrentPrice(poolAddressA)
-    let priceB = await getCurrentPrice(poolAddressB)
-
-    //console.log(priceA)
-    //console.log(priceB)
-    let prices ={
-        priceA,
-        priceB
-    }
-    console.log(prices)
-
-    //check if they are equal 
-    if(prices.priceA !== prices.priceB && (prices.priceA!==null&&prices.priceB!==null) ){
-        console.log("prices aren't equal - potential opp on: ",PAIRS.tokenName)
-        /*spread = (prices.priceA-prices.priceB )*BUY_AMOUNT
-        console.log('threshold',_threshold)
-        console.log('spread',spread) 
-        console.log('spread pre adjust',prices.priceA-prices.priceB)*/
-        let path = [PAIRS.token0, PAIRS.token1]
-        let decimals = [PAIRS.tokenDecimals0, PAIRS.tokenDecimals1]
-        //instead of 0 we need a value that takes into account the fee but for test purposes zero is fine
-        //the value the comes through when swap test doesn't fail is your best bet
-
-        let effPriceA = prices.priceA + (prices.priceA * tradeFee) + gasFee
-        let effPriceB = prices.priceB + (prices.priceB * tradeFee) + gasFee
-        let spread = effPriceA - effPriceB
-        console.log('spread',spread) 
-        console.log('effPriceA',effPriceA) 
-        console.log('effPriceB',effPriceB) 
-        if(spread>0){//TODO: CALCULATE THIS PROPORTIOALLY TO FEES - this can be used in swap test
-            /**
-             * Simple check spread*BUYAMOUNT > gas fee
-             */
-            //A > B - buy on B
-            console.log("buy on B sell on A")
-            let swapTestB = await swapTest(BUY_AMOUNT,PAIRS.swapRouterAdressB, PAIRS.swapRouterAdressA,path,decimals)
-            if(swapTestB){
-                console.log("run flash swap B -> A: ",PAIRS.tokenName)
-                stopInterval=true
-                clearInterval(getPricesInterval)
-
-                _params ={
-                    token0:PAIRS.token0, 
-                    token1:PAIRS.token1,
-                    router0:PAIRS.swapRouterAdressB,  //set this params depending on output 
-                    router1:PAIRS.swapRouterAdressA
-                
-                }
-                
-                
-                
-                await runFlash(_params)
-                console.log("Flash swap completed:", Date.now())
-            }else{
-                console.log("prices show opp but router says stop")
-            }
-        }else if (spread<-0){
-            //B> A - buy on A
-            console.log("buy on A sell on B")
-            let swapTestA = await swapTest(BUY_AMOUNT,PAIRS.swapRouterAdressA, PAIRS.swapRouterAdressB,path,decimals)
-            if(swapTestA){
-                console.log("run flash swap A->B",PAIRS.tokenName)
-                stopInterval = true
-                clearInterval(getPricesInterval)
-
-                _params ={
-                    token0:PAIRS.token0, 
-                    token1:PAIRS.token1,
-                    router0:PAIRS.swapRouterAdressA,  //set this params depending on output 
-                    router1:PAIRS.swapRouterAdressB
-                
-                }
-                
-                
-                
-                await runFlash(_params)
-                console.log("Flash swap completed:", Date.now())
-            }else{
-                console.log("prices show opp but router says stop",PAIRS.tokenName)
-            }
-        }else{
-            console.log("prices aren't equal no opp - spread too low")
-        }
-
-
-
-    }else{
-        console.log("prices are equal no opp")
-    }
-
-    //if they aren't run the official swap test 
-    return(prices)
-
-    }
-    
-
-}
-
-const swapTest = async (amountIn, swapRouter0,swapRouter1, path, decimals) => {
-    console.log("debug swap test 0")
-    //if swap test returns true then you can run arbitrage otherwise start again
-    let result = false
-    let buyResult = await buyPriceCheck(swapRouter0,amountIn,path, decimals)
-    let _path = path.reverse()
-    let _decimals = decimals.reverse()
-    let sellResult = await sellPriceCheck(swapRouter1,buyResult,_path, _decimals)
-    //test fee thresh hold (0.005) - later worry about exchange stuff
-    let testAaveThreshold = BUY_AMOUNT + (BUY_AMOUNT * 0.006) + gasFee
-    if(sellResult>testAaveThreshold){
-        result = true
-    }
-    console.log("sell result",sellResult)
-    console.log("amount in",amountIn)
-    console.log("debug swap test 1")
-    return result 
-}
-
-const _getGasPrice = async() =>{
-    let gasPrice = await provider.getGasPrice() /*Create separate function */
-    let gasPriceGWEI = ethers.utils.formatUnits(gasPrice, "gwei")
-    console.log(`gas price ${gasPriceGWEI.toString()}`)
-    //console.log(Math.round((parseInt(Math.round(gasPriceGWEI))*0.30))+ gasPriceGWEI)
-    let gasBuffered = Math.round(parseInt(gasPriceGWEI) + Math.round((parseInt(gasPriceGWEI)*0.50))) //increase by 25% 
-    console.log(`gas price +40% ${gasBuffered.toString()}`)
-    return gasBuffered.toString()
-}
-
-async function approveTokenSpending(tokenAddress,amountIn,swapRouterAddress) { //rewrite this to take both direction and save time
-    
-    //const wallet = new ethers.Wallet(privateKey, provider);
-    const wallet = new ethers.Wallet(privateKey)
-    const connectedWallet = wallet.connect(provider)
-    //let setSwapRouterAddress()
-  
-    // Replace with the ABI for the ERC-20 token (standard token ABI)
-    const tokenABI = WMATICABI.abi
-    const tokenContract = new ethers.Contract(tokenAddress, tokenABI, wallet);
-    console.log("approval token address", tokenAddress)
-  
-    // Replace with the maximum value or the amount you want to approve
-   
-  
-    // Replace with the spender address (SushiSwap Router in this case)
-
-    /**
-     *  const connectedWallet = wallet.connect(provider) //this could be the answer to any issues faced tbh
-        let gas = await calculateGas()
-        const flashTx = await flashLoanContract.connect(connectedWallet).createFlashLoan(
-     */
-    
-    //const approvalTx = await tokenContract.approve(owner, maxApproval);
-    //amountIn = BUY_AMOUNT
-    
-
-
-    console.log("debug approve 1")
-    let gasPrice = await _getGasPrice()
-    console.log(typeof amountIn)
-    console.log(amountIn)
-    //let _buff_amount = amountIn.toFixed(2) +1
-    const approvalTx = await tokenContract.connect(connectedWallet).approve(
-        swapRouterAddress,
-        approvalAmount = amountIn.toString(),
-        //approvalAmount = ethers.utils.parseUnits(amountIn.toString(), decimal).toString(),
-        {gasLimit: ethers.utils.hexlify(200000), //this is optimum gas for approval
-          gasPrice: ethers.utils.parseUnits(gasPrice, "gwei")}
-      )/*.then( async approvalResponse => {
-        console.log("tx:approve")
-        console.log("approve hash:",approvalResponse.hash)
-        await approvalResponse.wait();
-        console.log(`Approved spending on token ${tokenAddress} for ${owner}`);
-        //let tradeTransaction = await this.runTx(transaction,swapData,connectedWallet, gasBuffered)
-        //swapData = tradeTransaction
-      })*/
-      console.log(approvalTx.hash)
-      console.log("debug approve 2")
-      await approvalTx.wait()
-      console.log(`Approved spending on token ${tokenAddress} for ${owner}`);
-      
-      return
-    //
-  
-    
   }
+  
+  return true
+  
 
-const buyPriceCheck = async (swapRouter0,_amountIn,path, decimals) =>{
-    console.log("debug buy")
-   
-    //const amountIn  = ethers.utils.parseUnits(_amountIn.toString(), decimals[0])
-    const amountIn  = ethers.utils.parseUnits(_amountIn.toString(), decimals[0])
-    const wallet = new ethers.Wallet(privateKey, provider);
+  //show the difference between each match update poolObject - object
 
-    //await approveTokenSpending(path[0],amountIn,swapRouter0)
-    const swapRouter = new ethers.Contract(swapRouter0, v2RouterArtifact.abi, wallet);
-    const amountsOut = await swapRouter.getAmountsOut(amountIn, path); 
+}
+
+async function preCheckLiquidity(arbTestResult,pairObject1,pairObject2) {
+  console.log("\n*Checking liquidity before trade...\n")
+
+  const pairContract1 = new ethers.Contract(pairObject1.id, v2PairArtifact.abi, provider);
+  const pairContract2 = new ethers.Contract(pairObject2.id, v2PairArtifact.abi, provider);
+
+  let pairReservesRaw1 = await pairContract1.getReserves()
+  let pair1Lq0 = ethers.utils.formatUnits(String(pairReservesRaw1[0]),pairObject1.tokenDecimals1) //TODO:WHY?????????????? is it inversed
+  let pair1Lq1 = ethers.utils.formatUnits(String(pairReservesRaw1[1]),pairObject1.tokenDecimals0)
+
+  let pairReservesRaw2 = await pairContract2.getReserves()
+  let pair2Lq0 = ethers.utils.formatUnits(String(pairReservesRaw2[0]),pairObject2.tokenDecimals1)
+  let pair2Lq1 = ethers.utils.formatUnits(String(pairReservesRaw2[1]),pairObject2.tokenDecimals0)
+
+  let liquidityRequiredInit = arbTestResult.outputAmountInit
+  let liquidityRequiredExit = arbTestResult.outputAmountExit
+  //console.log("arbResult liquidity check",arbTestResult)
+  console.log("liquidityRequiredInit",liquidityRequiredInit)
+  console.log("liquidityRequiredExit",liquidityRequiredExit)
+  console.log("pair1Lq1",pair1Lq1)
+  console.log("pair2Lq1",pair2Lq1)
+  //19385115.989164363489263255
+
+  if(Number(pair1Lq1)<Number(liquidityRequiredInit)){
+    console.log("not enough initial liqiuidity")
+    return false
+  }if(Number(pair2Lq1)<Number(liquidityRequiredExit)){
+    console.log("not enough exit liqiuidity")
+    return false
+  }else{
+    return true
+  }
  
-    const amountOutMin = amountsOut[amountsOut.length - 1];
-    const amountOut = ethers.utils.formatUnits(String(amountOutMin),decimals[1])
+  
 
-    console.log("buy Amount out MIN",amountOut)
+  //pull liquidity again
+}
+
+function checkOwnedDirection(pairObject1,pairObject2) {
+  console.log("*Checking owned direction...")
+
+  const ownedTokens = [
+    "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+    "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+  ];
+  let token0Init = pairObject1.token0
+  if (!ownedTokens.includes(token0Init)) {
+    console.log("flip tokens");
+    pairObject1 = {
+      id: pairObject1.id,
+      token0:  pairObject1.token1, 
+      token1: pairObject1.token0, 
+      tokenSymbols0:pairObject1.tokenSymbols1,
+      tokenSymbols1:pairObject1.tokenSymbols0,
+      tokenDecimals0: pairObject1.tokenDecimals1,
+      tokenDecimals1: pairObject1.tokenDecimals0,
+      exchangeName: pairObject1.exchangeName,
+     
+    };
+    pairObject2 = {
+      id: pairObject2.id,
+      token0:  pairObject2.token1, 
+      token1: pairObject2.token0, 
+      tokenSymbols0:pairObject2.tokenSymbols1,
+      tokenSymbols1:pairObject2.tokenSymbols0,
+      tokenDecimals0: pairObject2.tokenDecimals1,
+      tokenDecimals1: pairObject2.tokenDecimals0,
+      exchangeName: pairObject2.exchangeName,
+     
+    };
+  }
+
+   let pairObjects =  {pairObject1,pairObject2}
+  
+   return pairObjects
+}
+
+const run = async () => {
+
+  //find and filter the pool data from the subgraph and add it to the file
+
+  // //only run on init - DO not RUN LOOP WITH THIS!!!!
+
+  //read the pool data
+  let poolObjects = await readPoolsFromSubgraphtoFile()
+  for (const poolObject of poolObjects) {
+    try{
+    console.log("\nNext pair...")
+    console.log(""+poolObject.pool.inputTokens[0].symbol+"->"+poolObject.pool.inputTokens[1].symbol+"... ")
+    //check liquidity is reasonable
+     let lqResult = await checkLiquidity(poolObject, poolObjects)
+     let fileName = ""
+     
+     if(!lqResult || lqResult===false){
+      //poolObjects.pop(poolObject)
+      //skip if there isn't enough liquidity do not pop
+       continue
+     }
+
+     let pairObject1 = {
+      id: poolObject.pool.id,
+      token0:  poolObject.pool.inputTokens[0].id, 
+      token1: poolObject.pool.inputTokens[1].id, 
+      tokenSymbols0:poolObject.pool.inputTokens[0].symbol,
+      tokenSymbols1:poolObject.pool.inputTokens[1].symbol,
+      tokenDecimals0: poolObject.pool.inputTokens[0].decimals,
+      tokenDecimals1: poolObject.pool.inputTokens[1].decimals,
+      exchangeName: poolObject.pool.exchangeName.toLowerCase(),
+     
+    };
+    let pairObject2 = {
+      id: poolObject.matches[0].id,
+      token0:  poolObject.matches[0].inputTokens[0].id, 
+      token1: poolObject.matches[0].inputTokens[1].id, 
+      tokenSymbols0:poolObject.matches[0].inputTokens[0].symbol,
+      tokenSymbols1:poolObject.matches[0].inputTokens[1].symbol,
+      tokenDecimals0: poolObject.matches[0].inputTokens[0].decimals,
+      tokenDecimals1: poolObject.matches[0].inputTokens[1].decimals,
+      exchangeName: poolObject.matches[0].exchangeName.toLowerCase(),
+     
+    };
+    let pairObjects = checkOwnedDirection(pairObject1,pairObject2)
+    pairObject1 = pairObjects.pairObject1
+    pairObject2 = pairObjects.pairObject2
+
+    /**
+     * GECKO ARBITRAGE TEST  if it fails continue - skip the madness and save credits 
+     */
+    console.log("Starting test for "+pairObject1.tokenSymbols0+"->"+pairObject1.tokenSymbols1+"... ")
+    console.log("path",[pairObject1.token0,pairObject1.token1])
+    //this could be a function tbh
    
-    return amountOut
-}
 
-const sellPriceCheck = async(swapRouter1,_amountIn,path, decimals) => {
-    console.log("debug sell")
-    const amountIn  = ethers.utils.parseUnits(_amountIn.toString(), decimals[0])
-    const wallet = new ethers.Wallet(privateKey, provider);
-    const swapRouter = new ethers.Contract(swapRouter1, v2RouterArtifact.abi, wallet);
-    const amountsOut = await swapRouter.getAmountsOut(amountIn, path); 
-    const amountOutMin = amountsOut[amountsOut.length - 1];
-    const amountOut = ethers.utils.formatUnits(String(amountOutMin),decimals[1])
-    console.log("Sell Amount out MIN",amountOut)
-    return amountOut
 
-}
+    let arbTestResult1 = await arbitrageTest(BUY_AMOUNT,pairObject1,pairObject2)
+    console.log("arbTestResult1",arbTestResult1)
+    let router0 = setSwapRouterAddress(pairObject1.exchangeName)
+    let router1 = setSwapRouterAddress(pairObject2.exchangeName)
+    let params1 = {
+      token0:pairObject1.token0,
+      token1:pairObject1.token1,
+      router0:router0,
+      router1:router1
 
-const _run = async () => {
-    //let prices = await getPrices()
+    }
+    console.log("params1",params1)
+
+    //FLIP!!
+    pairObject1.exchangeName = poolObject.matches[0].exchangeName.toLowerCase()
+    pairObject2.exchangeName = poolObject.pool.exchangeName.toLowerCase()
+    let _router0 = setSwapRouterAddress(pairObject1.exchangeName)
+    let _router1 = setSwapRouterAddress(pairObject2.exchangeName)
+
+    let params2 = {
+      token0:pairObject1.token0,
+      token1:pairObject1.token1,
+      router0:_router0,
+      router1:_router1
+
+    }
+     
+     let arbTestResult2 = await arbitrageTest(BUY_AMOUNT,pairObject1,pairObject2)
+  
+     console.log("arbTestResult2",arbTestResult2)
+     console.log("params2",params2)
+
+     if(arbTestResult1.result===false && arbTestResult2.result===false){
+        console.log("continue") //NO POINT CHECKING LIQUIDITY IF THEY'RE BOTH FALSE
+        continue
+     }
+
+     let preCheckLq1 = await preCheckLiquidity(arbTestResult1,pairObject2,pairObject1)
+     let preCheckLq2 = await preCheckLiquidity(arbTestResult2,pairObject1,pairObject2)
+
+      console.log("liquidity PreCheck",preCheckLq1,preCheckLq2)
+      if(preCheckLq1===false || preCheckLq2===false){
+        poolObject.pool.arbSwapResult = {
+        "amountOut": null,
+        "swapSucceed": false,
+        "failReason": "liquidity in pool is too low - no gas spend"
+        
     
-    getPricesInterval = setInterval(getPrices, 0.5 * 60000);
+      }
+        await savePoolstoFileTest(poolObject,"./data/arbirtageResultBelowLiquidity"+Date.now()+".json")
+        continue
+    
+      }
+      if(arbTestResult1.profit<0 ){
+        poolObject.pool.arbSwapResult = {
+          "amountOut": arbTestResult1.outputAmountExit,
+          "swapSucceed": false,
+          "failReason": "negative trade - no gas spend",
+          "profit": arbTestResult1.profit,
+        
+      
+        }
+        //await savePoolstoFileTest(poolObject,"./data/arbirtageResultNegative"+Date.now()+".json")
+        //continue
+        
+        
+
+        }
+        if(arbTestResult2.profit<0 ){
+          poolObject.pool.arbSwapResult = {
+            "amountOut": arbTestResult2.outputAmountExit,
+            "swapSucceed": false,
+            "failReason": "negative trade - no gas spend",
+            "profit": arbTestResult2.profit,
+         
+        
+          }
+          //await savePoolstoFileTest(poolObject,"./data/arbirtageResultNegative"+Date.now()+".json")
+          //continue
+          
+  
+          }
+      if(arbTestResult1.profit< gasFee && arbTestResult1.profit>0 ){
+        poolObject.pool.arbSwapResult = {
+          "amountOut": arbTestResult1.outputAmountExit,
+          "swapSucceed": false,
+          "failReason": "less than profitabletrade - no gas spend",
+          "profit": arbTestResult1.profit
+          
+      
+        }
+        await savePoolstoFileTest(poolObject,"./data/arbirtageResultBelowGas"+Date.now()+".json")
+        //continue
+        
+
+        }
+        if(arbTestResult2.profit< gasFee && arbTestResult2.profit>0 ){
+          poolObject.pool.arbSwapResult = {
+            "amountOut": arbTestResult2.outputAmountExit,
+            "swapSucceed": false,
+            "failReason": "less than profitabletrade - no gas spend",
+            "profit": arbTestResult2.profit
+        
+          }
+          await savePoolstoFileTest(poolObject,"./data/arbirtageResultBelowGas"+Date.now()+".json")
+          //continue
+          
+         
+  
+          }
+    
+
+          await savePoolstoFileTest(poolObject,"./data/arbirtageResultPreSwap"+Date.now()+".json")
+          
+     
+
+    if(arbTestResult1.result===true  && preCheckLq1===true && arbTestResult1.profit>gasFee ){
+     console.log("!!Found!!")
+     await runFlash(params1)
+     let exitThreshold //inputAmountExit- X amount or inputAmountInit
+
+     //TODO:if things break swap pair objects back!!!!!!!!!!!!!!!!!!!!!
+     let arbSwapResult1 = await arbitrageSwap(arbTestResult1.inputAmountInit,pairObject2,arbTestResult1.inputAmountExit,pairObject1,arbTestResult1.inputAmountInit)
+     poolObject.pool.arbSwapResult1 = arbSwapResult1//runswap
+     complete = true
+     await savePoolstoFileTest(poolObject,"./data/arbirtageResult"+Date.now()+".json")
+     if(arbSwapResult1===true){
+      await savePoolstoFileTest(poolObject,"./data/_arbirtageSuccess"+Date.now()+".json")
+      
+      //return params2
+
+    }
+    complete = true
+     break
+     
+    }
+
+     //flip the exchanges
+     
+
+    //check liquidity here
+    //0x7926ff860c1593e2473f6e28062e5a46230a813c
+
+     
+     if(arbTestResult2.result===true && preCheckLq2===true && arbTestResult2.profit>gasFee ){
+      console.log("!!Found!!")
+      //runswap
+      //let arbSwapResult2 = await arbitrageSwap(arbTestResult2.inputAmountInit,pairObject1,arbTestResult2.inputAmountExit,pairObject2,arbTestResult2.inputAmountInit)
+      await runFlash(params2) 
+
+      //TODO:pass in the buy amount to run flash
+      //https://blog.venly.io/how-to-solve-pending-transactions-on-ethereum-8dd5de6064c0
+      //if it fails the first time or takes to long run it again.
+      poolObject.pool.arbSwapResult = arbSwapResult2
+      await savePoolstoFileTest(poolObject,"./data/arbirtageResult"+Date.now()+".json")
+      
+      if(arbSwapResult2===true){
+        await savePoolstoFileTest(poolObject,"./data/_arbirtageSuccess"+Date.now()+".json")
+        
+
+      }
+      complete = true
+
+      break
+      
+     }
+     
+
+     
+    
+    
+
+    }catch(err){
+      console.log(err)
+      continue
+    }
+  }
+
+  return null
+
+  //await savePoolstoFileTest(poolObjects,"./data/arbirtageResult"+Date.now()+".json")
+  
+  
+  
 
 }
 
-_run()
+
+function waitForMinutes(m) {
+  //console.log("timer has passed")
+  return new Promise((resolve) => setTimeout(resolve, m * 60 * 1000));
+}
+
+async function initialise(){
+  //await runFindPools()
+ while(!complete){
+    await run();
+  
+    console.log("restarting...")
+    await waitForMinutes(5)
+  
+  }
+
+}
+
+
+initialise()
+
+
+
+
 
 

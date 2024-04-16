@@ -13,6 +13,7 @@
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "@uniswap/v3-core": "^1.0.1",
     "dotenv": "^16.0.3",
-    "ethers": "^5.7.2"
+    "ethers": "^5.7.2",
+    "play-sound": "^1.1.6"
   }
 }

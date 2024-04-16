@@ -1,0 +1,82 @@
+{
+  "pool": {
+    "id": "0x65d43b64e3b31965cd5ea367d4c2b94c03084797",
+    "name": "ApeSwap Wrapped Matic/(PoS) Tether USD",
+    "inputTokens": [
+      {
+        "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+        "decimals": 18,
+        "symbol": "WMATIC"
+      },
+      {
+        "id": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+        "decimals": 6,
+        "symbol": "USDT"
+      }
+    ],
+    "totalValueLockedUSD": "95307.18093",
+    "exchangeName": "apeswap",
+    "factory": "0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607",
+    "poolReserves": {
+      "lq0": "59899.157569717451691647",
+      "lq1": "43776.728477"
+    },
+    "arbSwapResult": {
+      "amountOut": null,
+      "swapSucceed": false,
+      "failReason": "liquidity in pool is too low - no gas spend"
+    }
+  },
+  "matches": [
+    {
+      "id": "0x55ff76bffc3cdd9d5fdbbc2ece4528ecce45047e",
+      "name": "SushiSwap Wrapped Matic/(PoS) Tether USD",
+      "inputTokens": [
+        {
+          "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+          "decimals": 18,
+          "symbol": "WMATIC"
+        },
+        {
+          "id": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+          "decimals": 6,
+          "symbol": "USDT"
+        }
+      ],
+      "totalValueLockedUSD": "28378.5538857379847755621686103802",
+      "exchangeName": "sushiswap",
+      "factory": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
+      "poolReserves": {
+        "lq0": "17810.120167583854261846",
+        "lq1": "13113.398987",
+        "lqDiff0": 108.32435618412752,
+        "lqDiff1": 107.7984207695921
+      }
+    },
+    {
+      "id": "0x604229c960e5cacf2aaeac8be68ac07ba9df81c3",
+      "name": "QuickSwap Wrapped Matic/(PoS) Tether USD",
+      "inputTokens": [
+        {
+          "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+          "decimals": 18,
+          "symbol": "WMATIC"
+        },
+        {
+          "id": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+          "decimals": 6,
+          "symbol": "USDT"
+        }
+      ],
+      "totalValueLockedUSD": "562045.6146245255131965751765497742",
+      "exchangeName": "quickswap",
+      "factory": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+      "poolReserves": {
+        "lq0": "351880.22846258993772799",
+        "lq1": "258021.18576",
+        "lqDiff0": 141.81432135603032,
+        "lqDiff1": 141.9787527853855
+      }
+    }
+  ]
+}

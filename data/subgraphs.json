@@ -1,5 +1,5 @@
 {"subgraphs":[
-{"name":"SushiSwap","url":"https://api.thegraph.com/subgraphs/name/messari/sushiswap-polygon"},
-{"name":"QuickSwap","url":"https://api.thegraph.com/subgraphs/name/messari/quickswap-polygon"},
-{"name":"Honeyswap","url":"https://api.thegraph.com/subgraphs/name/messari/honeyswap-polygon"},
-{"name":"ApeSwap","url":"https://api.thegraph.com/subgraphs/name/messari/apeswap-polygon"}]}
+{"name":"sushiswap","url":"https://api.thegraph.com/subgraphs/name/messari/sushiswap-polygon"},
+{"name":"quickswap","url":"https://api.thegraph.com/subgraphs/name/messari/quickswap-polygon"},
+{"name":"honeyswap","url":"https://api.thegraph.com/subgraphs/name/messari/honeyswap-polygon"},
+{"name":"apeswap","url":"https://api.thegraph.com/subgraphs/name/messari/apeswap-polygon"}]}

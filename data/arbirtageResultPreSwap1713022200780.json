@@ -1,0 +1,83 @@
+{
+  "pool": {
+    "id": "0xd32f3139a214034a0f9777c87ee0a064c1ff6ae2",
+    "name": "ApeSwap Wrapped Matic/(PoS) Dai Stablecoin",
+    "inputTokens": [
+      {
+        "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+        "decimals": 18,
+        "symbol": "WMATIC"
+      },
+      {
+        "id": "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+        "decimals": 18,
+        "symbol": "DAI"
+      }
+    ],
+    "totalValueLockedUSD": "84316.35483102889221071829728310728",
+    "exchangeName": "apeswap",
+    "factory": "0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607",
+    "poolReserves": {
+      "lq0": "51723.379927337362881882",
+      "lq1": "39433.998974486351863881"
+    },
+    "arbSwapResult": {
+      "amountOut": "10.004360646642389888",
+      "swapSucceed": false,
+      "failReason": "less than profitabletrade - no gas spend",
+      "profit": 0.004360646642389554
+    }
+  },
+  "matches": [
+    {
+      "id": "0x8929d3fea77398f64448c85015633c2d6472fb29",
+      "name": "SushiSwap Wrapped Matic/(PoS) Dai Stablecoin",
+      "inputTokens": [
+        {
+          "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+          "decimals": 18,
+          "symbol": "WMATIC"
+        },
+        {
+          "id": "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+          "decimals": 18,
+          "symbol": "DAI"
+        }
+      ],
+      "totalValueLockedUSD": "5243.440807597275707981320334384381",
+      "exchangeName": "sushiswap",
+      "factory": "0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506",
+      "poolReserves": {
+        "lq0": "3236.096125986106692741",
+        "lq1": "2445.756477291112814332",
+        "lqDiff0": 176.44740191594008,
+        "lqDiff1": 176.64020287695055
+      }
+    },
+    {
+      "id": "0xeef611894ceae652979c9d0dae1deb597790c6ee",
+      "name": "QuickSwap Wrapped Matic/(PoS) Dai Stablecoin",
+      "inputTokens": [
+        {
+          "id": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+          "decimals": 18,
+          "symbol": "WMATIC"
+        },
+        {
+          "id": "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+          "decimals": 18,
+          "symbol": "DAI"
+        }
+      ],
+      "totalValueLockedUSD": "19057.92461904597346562131360879105",
+      "exchangeName": "quickswap",
+      "factory": "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+      "poolReserves": {
+        "lq0": "11733.982911312276354334",
+        "lq1": "8926.643343547571092773",
+        "lqDiff0": 126.03548344013112,
+        "lqDiff1": 126.16604812778691
+      }
+    }
+  ]
+}
